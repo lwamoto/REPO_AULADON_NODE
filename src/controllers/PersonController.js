@@ -1,22 +1,14 @@
-const Person = require('..models/personModel');
+const Person = require('../models/personModel'); // corrigido
 
 class PersonController {
     static async create(req, res) {
         try {
-            const { name, lastName, salary } = req.body;
-            if (!name || !lastName || !salary) {
-                return res.status(400).json({ message: "Dados inválidos." });
-            }
-            
-            const personData = {
-                name,
-                lastName,
-                salary
-            };
-            const newPerson = await Person.create(personData);
+            const newPerson = await Person.create(req.body); // Mongoose valida pelo required
             return res.status(201).json({ message: 'Pessoa criada com sucesso', data: newPerson });
-
         } catch (error) {
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({ message: error.message });
+            }
             return res.status(500).json({ message: 'Erro ao criar pessoa', error: error.message });
         }
     }
@@ -32,8 +24,7 @@ class PersonController {
 
     static async getById(req, res) {
         try {
-            const { id } = req.params;
-            const person = await Person.findById(id);
+            const person = await Person.findById(req.params.id);
             if (!person) {
                 return res.status(404).json({ message: 'Pessoa não encontrada' });
             }
@@ -45,27 +36,26 @@ class PersonController {
 
     static async update(req, res) {
         try {
-            const { id } = req.params;
-            const { name, lastName, salary } = req.body;
-            const updatedData = {
-                name,
-                lastName,
-                salary
-            };
-            const updatedPerson = await Person.findByIdAndUpdate(id, updatedData, { new: true });
+            const updatedPerson = await Person.findByIdAndUpdate(
+                req.params.id,
+                req.body,
+                { new: true, runValidators: true }
+            );
             if (!updatedPerson) {
                 return res.status(404).json({ message: 'Pessoa não encontrada' });
             }
             return res.status(200).json({ message: 'Pessoa atualizada com sucesso', data: updatedPerson });
         } catch (error) {
+            if (error.name === 'ValidationError') {
+                return res.status(400).json({ message: error.message });
+            }
             return res.status(500).json({ message: 'Erro ao atualizar pessoa', error: error.message });
         }
     }
 
     static async delete(req, res) {
         try {
-            const { id } = req.params;
-            const deletedPerson = await Person.findByIdAndDelete(id);
+            const deletedPerson = await Person.findByIdAndDelete(req.params.id);
             if (!deletedPerson) {
                 return res.status(404).json({ message: 'Pessoa não encontrada' });
             }
@@ -75,3 +65,5 @@ class PersonController {
         }
     }
 }
+
+module.exports = PersonController; // faltava isso
